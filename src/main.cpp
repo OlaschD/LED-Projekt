@@ -96,7 +96,7 @@ void Band_L() { // Schaltet nacheinander alle LEDs ein und anschliessend nachein
 
 void Band_R() { // Schaltet nacheinander alle LEDs ein und anschliessend nacheinander alle wieder aus andere Richtung
 	static uint8_t hue;                              // Variable für den Farbton
-	for (int z = NUM_LEDS - 1; z > -1; z--) {            // alle LEDS durchlaufen
+	for (int z = NUM_LEDS - 1; z > -1; z--) {           // alle LEDS durchlaufen
 		leds[z] = CHSV(hue + random16(), 255, 255);  // die entsprechende Led an
 		FastLED.show();                         // und nun ausgeben und anzeigen
 		FastLED.delay(Zeit);                                    // Zeit abwarten
