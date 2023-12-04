@@ -27,19 +27,19 @@
 #define PIN			6
 #define NUMPIXEL	24
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXEL, PIN, NEO_GRB + NEO_KHZ800);
-int count = 3;		// der wievielte Punkt wird angesteuert
+int count = 4;		// der wievielte Punkt wird angesteuert
 #define DELAYVAL 500
 int Durchlauf = 5;
 // put function declarations here:
-void Punkt_L();
-void Punkt_R();
-void Band_L();
-void Band_R();
+
 void Test(int wait);
 void rainbowCycle(uint8_t wait);
 void theaterChaseRainbow(uint8_t wait);
 void colorWipe(uint32_t color, int wait);
 void pulseWhite(uint8_t wait);
+void whiteOverRainbow(int whiteSpeed, int whiteLength);
+void cwipe();
+
 
 uint32_t Wheel(byte WheelPos) {
   WheelPos = 255 - WheelPos;
@@ -67,12 +67,14 @@ void setup() {
 // The loop function is called in an endless loop
 void loop() { 
 	pixels.clear(); 
+	cwipe();
     Test(DELAYVAL);
     Serial.println(Durchlauf);
 	rainbowCycle(20); 
 	theaterChaseRainbow(50);
-	colorWipe(127, 50);
-	pulseWhite(50);
+	whiteOverRainbow(75, 5);
+	colorWipe(255, 50);
+	// pulseWhite(50);
 //   Serial.println("In der Loop . . ");
 	for (int z = 0; z <= 10; z++) {
 		// Punkt_L();
@@ -84,6 +86,55 @@ void loop() {
 	}
 } // Loop
 
+void whiteOverRainbow(int whiteSpeed, int whiteLength) {
+
+  if(whiteLength >= pixels.numPixels()) whiteLength = pixels.numPixels() - 1;
+
+  int      head          = whiteLength - 1;
+  int      tail          = 0;
+  int      loops         = 3;
+  int      loopNum       = 0;
+  uint32_t lastTime      = millis();
+  uint32_t firstPixelHue = 0;
+
+  for(;;) { // Repeat forever (or until a 'break' or 'return')
+    for(int i=0; i<pixels.numPixels(); i++) {  // For each pixel in pixels...
+      if(((i >= tail) && (i <= head)) ||      //  If between head & tail...
+         ((tail > head) && ((i >= tail) || (i <= head)))) {
+        pixels.setPixelColor(i, pixels.Color(0, 0, 0, 255)); // Set white
+      } else {                                             // else set rainbow
+        int pixelHue = firstPixelHue + (i * 65536L / pixels.numPixels());
+        pixels.setPixelColor(i, pixels.gamma32(pixels.ColorHSV(pixelHue)));
+      }
+    }
+
+    pixels.show(); // Update pixels with new contents
+    // There's no delay here, it just runs full-tilt until the timer and
+    // counter combination below runs out.
+
+    firstPixelHue += 40; // Advance just a little along the color wheel
+
+    if((millis() - lastTime) > whiteSpeed) { // Time to update head/tail?
+      if(++head >= pixels.numPixels()) {      // Advance head, wrap around
+        head = 0;
+        if(++loopNum >= loops) return;
+      }
+      if(++tail >= pixels.numPixels()) {      // Advance tail, wrap around
+        tail = 0;
+      }
+      lastTime = millis();                   // Save time of last movement
+    }
+  }
+}
+
+void cwipe() {
+	for (size_t i = 0; i < count; i++)
+	{
+		colorWipe(pixels.Color(255,   0,   0)     , 150); // Red
+    	colorWipe(pixels.Color(  0, 255,   0)     , 150); // Green
+    	colorWipe(pixels.Color(  0,   0, 255)     , 150); // Blue
+	}
+}
 void pulseWhite(uint8_t wait) {
   for(int j=0; j<256; j++) { // Ramp up from 0 to 255
     // Fill entire pixels with white at gamma-corrected brightness level 'j':
@@ -100,17 +151,17 @@ void pulseWhite(uint8_t wait) {
 }
 
 void colorWipe(uint32_t color, int wait) {
-  for(int i=0; i<pixels.numPixels(); i++) { // For each pixel in strip...
+  for(int i=0; i < pixels.numPixels(); i++) { // For each pixel in pixels...
     pixels.setPixelColor(i, color);         //  Set pixel's color (in RAM)
-    pixels.show();                          //  Update strip to match
+    pixels.show();                          //  Update pixels to match
     delay(wait);                           //  Pause for a moment
   }
 }
 
 void theaterChaseRainbow(uint8_t wait) {
   for (int j=0; j < 256; j++) {     // cycle all 256 colors in the wheel
-    for (int q=0; q < 3; q++) {
-      for (uint16_t i=0; i < pixels.numPixels(); i=i+3) {
+    for (int q=0; q < 4; q++) {
+      for (uint16_t i=0; i < pixels.numPixels(); i=i+4) {
         pixels.setPixelColor(i+q, Wheel( (i+j) % 255));    //turn every third pixel on
       }
       pixels.show();
@@ -138,7 +189,7 @@ void rainbowCycle(uint8_t wait) {
 
 void Test(int wait) {
     int firstPixelHue = 0;
-	for (int a = 0; a < 20; a++) 	{
+	for (int a = 0; a < 40; a++) 	{
 		for (int b = 0; b < count; b++) {
 			pixels.clear();
 			for (uint8_t c = b; c < pixels.numPixels(); c += count) 			{
@@ -152,67 +203,3 @@ void Test(int wait) {
 		}
 	}
 }
-
-
-/*
-void Punkt_L() {                                  // ein einzelner Punkt in Blau
-	static uint8_t hue;                              // Variable für den Farbton
-	
-	for (int z = 0; z < NUM_LEDS; z++) {                // alle LEDS durchlaufen
-		leds[z] = (hue + random16(), 255, 255);             // die entsprechende Led an
-		strip.show();                         // und nun ausgeben und anzeigen
-		strip.delay(Zeit);                                    // Zeit abwarten
-		if (z <= NUM_LEDS) {                     // wenn die letzte LED erreicht
-			for (int z = 0; z < NUM_LEDS; z++) {      // wieder alle durchlaufen
-				leds[z] = CRGB::Black;             // schaltet alle LEDs auf aus
-				strip.show();                 // und nun ausgeben und anzeigen
-			}
-		}
-	}
-}
-
-void Punkt_R() {                                  // ein einzelner Punkt in Blau
-	static uint8_t hue;                              // Variable für den Farbton
-	for (int z = NUM_LEDS - 1; z > 0; z--) {            // alle LEDS durchlaufen
-		leds[z] = CHSV(hue + random16(), 255, 255);  // die entsprechende Led an
-		strip.show();                         // und nun ausgeben und anzeigen
-		strip.delay(Zeit);                                    // Zeit abwarten
-		if (z <= NUM_LEDS) {                     // wenn die letzte LED erreicht
-			for (int z = NUM_LEDS -1; z > 0; z--) {  // wieder alle durchlaufen
-				leds[z] = CRGB::Black;             // schaltet alle LEDs auf aus
-				strip.show();                 // und nun ausgeben und anzeigen
-			}
-		}
-	}
-}
-
-void Band_L() { // Schaltet nacheinander alle LEDs ein und anschliessend nacheinander alle wieder aus
-	static uint8_t hue;                              // Variable für den Farbton
-	for (int z = 0; z < NUM_LEDS; z++) {                // alle LEDS durchlaufen
-		leds[z] = CHSV(hue + random16(), 255, 255);  // die entsprechende Led an
-		strip.show();                         // und nun ausgeben und anzeigen
-		strip.delay(Zeit);                                    // Zeit abwarten
-	}
-	for (int z = 0; z < NUM_LEDS; z++) {              // wieder alle durchlaufen
-		leds[z] = CRGB::Black;            // schaltet alle LEDs nacheinander aus
-		strip.show();                                 // ausgeben und anzeigen
-		strip.delay(Zeit);                     // und wieder die Zeit abwarten
-	}
-}
-
-
-void Band_R() { // Schaltet nacheinander alle LEDs ein und anschliessend nacheinander alle wieder aus andere Richtung
-	static uint8_t hue;                              // Variable für den Farbton
-	for (int z = NUM_LEDS - 1; z > -1; z--) {           // alle LEDS durchlaufen
-		leds[z] = CHSV(hue + random16(), 255, 255);  // die entsprechende Led an
-		strip.show();                         // und nun ausgeben und anzeigen
-		strip.delay(Zeit);                                    // Zeit abwarten
-	}
-	for (int z = NUM_LEDS - 1; z > 0; z--) {          // wieder alle durchlaufen
-		leds[z] = CRGB::Black;            // schaltet alle LEDs nacheinander aus
-		strip.show();                                 // ausgeben und anzeigen
-		strip.delay(Zeit);                     // und wieder die Zeit abwarten
-	}
-}
-
-*/
