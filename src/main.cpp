@@ -28,14 +28,28 @@
 #define NUMPIXEL	12
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXEL, PIN, NEO_GRB + NEO_KHZ800);
 int count = 3;		// der wievielte Punkt wird angesteuert
-#define DELAYVAL 400
+#define DELAYVAL 500
+int Durchlauf = 5;
 // put function declarations here:
 void Punkt_L();
 void Punkt_R();
 void Band_L();
 void Band_R();
 void Test(int wait);
+void rainbowCycle(uint8_t wait);
 
+uint32_t Wheel(byte WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if(WheelPos < 85) {
+    return pixels.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if(WheelPos < 170) {
+    WheelPos -= 85;
+    return pixels.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return pixels.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
 
 void setup() {
 #if defined(__AVR_ATtiny85__) && (F_CPU == 16000000)
@@ -49,10 +63,17 @@ void setup() {
 
 // The loop function is called in an endless loop
 void loop() { 
-	pixels.clear(); 									
-	Test(DELAYVAL);
-
-  Serial.println("In der Loop . . ");
+	pixels.clear(); 
+	for (int i = 0; i < Durchlauf; i++)
+	{
+	  Test(DELAYVAL);
+	  Serial.println(i);
+	}
+	for (int i = 0; i < Durchlauf; i++)
+	{									
+		void rainbowCycle(uint8_t wait); 
+	}
+//   Serial.println("In der Loop . . ");
 	for (int z = 0; z <= 10; z++) {
 		// Punkt_L();
 		// Punkt_R();
@@ -62,6 +83,18 @@ void loop() {
 	    // Band_R();
 	}
 } // Loop
+
+void rainbowCycle(uint8_t wait) {
+  uint16_t i, j;
+
+  for(j=0; j<256*5; j++) { // 5 cycles of all colors on wheel
+    for(i=0; i< pixels.numPixels(); i++) {
+      pixels.setPixelColor(i, Wheel(((i * 256 / pixels.numPixels()) + j) & 255));
+    }
+    pixels.show();
+    delay(wait);
+  }
+}
 
 void Test(int wait) {
     int firstPixelHue = 0;
@@ -85,6 +118,8 @@ void Test(int wait) {
 	}
 	
 }
+
+
 /*
 void Punkt_L() {                                  // ein einzelner Punkt in Blau
 	static uint8_t hue;                              // Variable für den Farbton
