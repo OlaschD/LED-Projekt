@@ -19,46 +19,84 @@
 
 #include <Arduino.h>
 #include <Nano_9_LED.h>
+#include <Adafruit_NeoPixel.h>
 
+#ifdef __AVR__
+ #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
+#endif
+#define PIN			6
+#define NUMPIXEL	12
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXEL, PIN, NEO_GRB + NEO_KHZ800);
+int count = 3;		// der wievielte Punkt wird angesteuert
+#define DELAYVAL 400
 // put function declarations here:
 void Punkt_L();
 void Punkt_R();
 void Band_L();
 void Band_R();
+void Test(int wait);
 
 
 void setup() {
-
-	FastLED.addLeds<NEOPIXEL, 6>(leds, NUM_LEDS); // Art der LEDs,PIN-Anschluß (Name, Anzahl der LEDs)
-	FastLED.setBrightness(BRIGHTNESS);                   // Setzt die Helligkeit
+#if defined(__AVR_ATtiny85__) && (F_CPU == 16000000)
+  clock_prescale_set(clock_div_1);
+#endif	
+	// FastLED.addLeds<NEOPIXEL, 6>(leds, NUM_LEDS); // Art der LEDs,PIN-Anschluß (Name, Anzahl der LEDs)
+	pixels.begin();
+	pixels.setBrightness(BRIGHTNESS);                   // Setzt die Helligkeit
 	Serial.begin(9600);
 }
 
 // The loop function is called in an endless loop
-void loop() {  									//Add your repeated code here
-	int z = 0;
-	int i = 0;
+void loop() { 
+	pixels.clear(); 									
+	Test(DELAYVAL);
+
   Serial.println("In der Loop . . ");
-	for (z = 0; z <= 10; z++) {
-		Punkt_L();
-		Punkt_R();
+	for (int z = 0; z <= 10; z++) {
+		// Punkt_L();
+		// Punkt_R();
 	}
-	for (i = 0; i <= 10; i++) {
-		Band_L();
-	    Band_R();
+	for (int i = 0; i <= 10; i++) {
+		// Band_L();
+	    // Band_R();
 	}
 } // Loop
 
+void Test(int wait) {
+    int firstPixelHue = 0;
+	for (int a = 0; a < 10; a++) 	{
+		for (int b = 0; b < count; b++) {
+			pixels.clear();
+			for (uint8_t c = b; c < pixels.numPixels(); c += count) 			{
+				int hue = firstPixelHue + c * 65536L / pixels.numPixels();
+				uint32_t color = pixels.gamma32(pixels.ColorHSV(hue));
+				pixels.setPixelColor(c, color);
+			}
+			pixels.show();
+			delay(wait);
+			firstPixelHue += 65536 / 90;
+			
+		}
+		
+		// pixels.setPixelColor(i, pixels.Color(0,150,0));
+		// pixels.show();
+		// delay(DELAYVAL);
+	}
+	
+}
+/*
 void Punkt_L() {                                  // ein einzelner Punkt in Blau
 	static uint8_t hue;                              // Variable für den Farbton
+	
 	for (int z = 0; z < NUM_LEDS; z++) {                // alle LEDS durchlaufen
-		leds[z] = CHSV(hue + random16(), 255, 255);             // die entsprechende Led an
-		FastLED.show();                         // und nun ausgeben und anzeigen
-		FastLED.delay(Zeit);                                    // Zeit abwarten
+		leds[z] = (hue + random16(), 255, 255);             // die entsprechende Led an
+		strip.show();                         // und nun ausgeben und anzeigen
+		strip.delay(Zeit);                                    // Zeit abwarten
 		if (z <= NUM_LEDS) {                     // wenn die letzte LED erreicht
 			for (int z = 0; z < NUM_LEDS; z++) {      // wieder alle durchlaufen
 				leds[z] = CRGB::Black;             // schaltet alle LEDs auf aus
-				FastLED.show();                 // und nun ausgeben und anzeigen
+				strip.show();                 // und nun ausgeben und anzeigen
 			}
 		}
 	}
@@ -68,12 +106,12 @@ void Punkt_R() {                                  // ein einzelner Punkt in Blau
 	static uint8_t hue;                              // Variable für den Farbton
 	for (int z = NUM_LEDS - 1; z > 0; z--) {            // alle LEDS durchlaufen
 		leds[z] = CHSV(hue + random16(), 255, 255);  // die entsprechende Led an
-		FastLED.show();                         // und nun ausgeben und anzeigen
-		FastLED.delay(Zeit);                                    // Zeit abwarten
+		strip.show();                         // und nun ausgeben und anzeigen
+		strip.delay(Zeit);                                    // Zeit abwarten
 		if (z <= NUM_LEDS) {                     // wenn die letzte LED erreicht
 			for (int z = NUM_LEDS -1; z > 0; z--) {  // wieder alle durchlaufen
 				leds[z] = CRGB::Black;             // schaltet alle LEDs auf aus
-				FastLED.show();                 // und nun ausgeben und anzeigen
+				strip.show();                 // und nun ausgeben und anzeigen
 			}
 		}
 	}
@@ -83,13 +121,13 @@ void Band_L() { // Schaltet nacheinander alle LEDs ein und anschliessend nachein
 	static uint8_t hue;                              // Variable für den Farbton
 	for (int z = 0; z < NUM_LEDS; z++) {                // alle LEDS durchlaufen
 		leds[z] = CHSV(hue + random16(), 255, 255);  // die entsprechende Led an
-		FastLED.show();                         // und nun ausgeben und anzeigen
-		FastLED.delay(Zeit);                                    // Zeit abwarten
+		strip.show();                         // und nun ausgeben und anzeigen
+		strip.delay(Zeit);                                    // Zeit abwarten
 	}
 	for (int z = 0; z < NUM_LEDS; z++) {              // wieder alle durchlaufen
 		leds[z] = CRGB::Black;            // schaltet alle LEDs nacheinander aus
-		FastLED.show();                                 // ausgeben und anzeigen
-		FastLED.delay(Zeit);                     // und wieder die Zeit abwarten
+		strip.show();                                 // ausgeben und anzeigen
+		strip.delay(Zeit);                     // und wieder die Zeit abwarten
 	}
 }
 
@@ -98,13 +136,14 @@ void Band_R() { // Schaltet nacheinander alle LEDs ein und anschliessend nachein
 	static uint8_t hue;                              // Variable für den Farbton
 	for (int z = NUM_LEDS - 1; z > -1; z--) {           // alle LEDS durchlaufen
 		leds[z] = CHSV(hue + random16(), 255, 255);  // die entsprechende Led an
-		FastLED.show();                         // und nun ausgeben und anzeigen
-		FastLED.delay(Zeit);                                    // Zeit abwarten
+		strip.show();                         // und nun ausgeben und anzeigen
+		strip.delay(Zeit);                                    // Zeit abwarten
 	}
 	for (int z = NUM_LEDS - 1; z > 0; z--) {          // wieder alle durchlaufen
 		leds[z] = CRGB::Black;            // schaltet alle LEDs nacheinander aus
-		FastLED.show();                                 // ausgeben und anzeigen
-		FastLED.delay(Zeit);                     // und wieder die Zeit abwarten
+		strip.show();                                 // ausgeben und anzeigen
+		strip.delay(Zeit);                     // und wieder die Zeit abwarten
 	}
 }
 
+*/
