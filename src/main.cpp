@@ -25,7 +25,7 @@
  #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
 #endif
 #define PIN			6
-#define NUMPIXEL	12
+#define NUMPIXEL	24
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXEL, PIN, NEO_GRB + NEO_KHZ800);
 int count = 3;		// der wievielte Punkt wird angesteuert
 #define DELAYVAL 500
@@ -37,6 +37,9 @@ void Band_L();
 void Band_R();
 void Test(int wait);
 void rainbowCycle(uint8_t wait);
+void theaterChaseRainbow(uint8_t wait);
+void colorWipe(uint32_t color, int wait);
+void pulseWhite(uint8_t wait);
 
 uint32_t Wheel(byte WheelPos) {
   WheelPos = 255 - WheelPos;
@@ -64,15 +67,12 @@ void setup() {
 // The loop function is called in an endless loop
 void loop() { 
 	pixels.clear(); 
-	for (int i = 0; i < Durchlauf; i++)
-	{
-	  Test(DELAYVAL);
-	  Serial.println(i);
-	}
-	for (int i = 0; i < Durchlauf; i++)
-	{									
-		void rainbowCycle(uint8_t wait); 
-	}
+    Test(DELAYVAL);
+    Serial.println(Durchlauf);
+	rainbowCycle(20); 
+	theaterChaseRainbow(50);
+	colorWipe(127, 50);
+	pulseWhite(50);
 //   Serial.println("In der Loop . . ");
 	for (int z = 0; z <= 10; z++) {
 		// Punkt_L();
@@ -83,6 +83,46 @@ void loop() {
 	    // Band_R();
 	}
 } // Loop
+
+void pulseWhite(uint8_t wait) {
+  for(int j=0; j<256; j++) { // Ramp up from 0 to 255
+    // Fill entire pixels with white at gamma-corrected brightness level 'j':
+    pixels.fill(pixels.Color(0, 0, 0, pixels.gamma8(j)));
+    pixels.show();
+    delay(wait);
+  }
+
+  for(int j=255; j>=0; j--) { // Ramp down from 255 to 0
+    pixels.fill(pixels.Color(0, 0, 0, pixels.gamma8(j)));
+    pixels.show();
+    delay(wait);
+  }
+}
+
+void colorWipe(uint32_t color, int wait) {
+  for(int i=0; i<pixels.numPixels(); i++) { // For each pixel in strip...
+    pixels.setPixelColor(i, color);         //  Set pixel's color (in RAM)
+    pixels.show();                          //  Update strip to match
+    delay(wait);                           //  Pause for a moment
+  }
+}
+
+void theaterChaseRainbow(uint8_t wait) {
+  for (int j=0; j < 256; j++) {     // cycle all 256 colors in the wheel
+    for (int q=0; q < 3; q++) {
+      for (uint16_t i=0; i < pixels.numPixels(); i=i+3) {
+        pixels.setPixelColor(i+q, Wheel( (i+j) % 255));    //turn every third pixel on
+      }
+      pixels.show();
+
+      delay(wait);
+
+      for (uint16_t i=0; i < pixels.numPixels(); i=i+3) {
+        pixels.setPixelColor(i+q, 0);        //turn every third pixel off
+      }
+    }
+  }
+}
 
 void rainbowCycle(uint8_t wait) {
   uint16_t i, j;
@@ -98,7 +138,7 @@ void rainbowCycle(uint8_t wait) {
 
 void Test(int wait) {
     int firstPixelHue = 0;
-	for (int a = 0; a < 10; a++) 	{
+	for (int a = 0; a < 20; a++) 	{
 		for (int b = 0; b < count; b++) {
 			pixels.clear();
 			for (uint8_t c = b; c < pixels.numPixels(); c += count) 			{
@@ -108,15 +148,9 @@ void Test(int wait) {
 			}
 			pixels.show();
 			delay(wait);
-			firstPixelHue += 65536 / 90;
-			
+			firstPixelHue += 65536 / 90;			
 		}
-		
-		// pixels.setPixelColor(i, pixels.Color(0,150,0));
-		// pixels.show();
-		// delay(DELAYVAL);
 	}
-	
 }
 
 
