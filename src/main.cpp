@@ -32,13 +32,18 @@ int count = 4;		// der wievielte Punkt wird angesteuert
 int Durchlauf = 5;
 // put function declarations here:
 
-void Test(int wait);
+void LED_jede_X(int wait);
 void rainbowCycle(uint8_t wait);
 void theaterChaseRainbow(uint8_t wait);
 void colorWipe(uint32_t color, int wait);
 void pulseWhite(uint8_t wait);
 void whiteOverRainbow(int whiteSpeed, int whiteLength);
 void cwipe();
+void turnOffPixels();
+void showRandomPixels(int iterations, int delayMilliseconds, byte ledBrightness, bool randomizeColors);
+
+void showKnightRider(int iterations, int delayMilliseconds, uint32_t color);
+void Test2();
 
 
 uint32_t Wheel(byte WheelPos) {
@@ -67,8 +72,11 @@ void setup() {
 // The loop function is called in an endless loop
 void loop() { 
 	pixels.clear(); 
-	cwipe();
-    Test(DELAYVAL);
+	Test2();
+  showKnightRider(10, 25, pixels.Color(255, 0, 0));
+  cwipe();
+  showRandomPixels(40, 180, 100, true);
+  LED_jede_X(DELAYVAL);
     Serial.println(Durchlauf);
 	rainbowCycle(20); 
 	theaterChaseRainbow(50);
@@ -126,6 +134,77 @@ void whiteOverRainbow(int whiteSpeed, int whiteLength) {
     }
   }
 }
+void Test2() {
+    
+}
+
+void showKnightRider(int iterations, int delayMilliseconds, uint32_t color)
+{
+    const byte STEP = 15;
+    byte dir = 0, headIndex = 0;
+    uint8_t r, g, b;
+    uint32_t col;
+
+    turnOffPixels();
+
+    for (int iter = 0; iter < iterations; iter++) {
+        for (int i = 0; i < NUMPIXEL; i++) {
+            for (int k = 0; k < NUMPIXEL; k++) {
+                col = pixels.getPixelColor(k);
+
+                r = col >> 16;
+                g = col >> 8;
+                b = col;
+
+                if (r > 0) {
+                    r -= STEP;
+                    r = max(0, r);
+                }
+                if (g > 0) {
+                    g -= STEP;
+                    g = max(0, g);
+                }
+                if (b > 0) {
+                    b -= STEP;
+                    b = max(0, b);
+                }
+
+                pixels.setPixelColor(k, pixels.Color(r, g, b));
+            }
+
+            pixels.setPixelColor(headIndex, color);
+            if (dir == 0) {
+                headIndex++;
+            } else {
+                headIndex--;
+            }
+            pixels.show();
+            delay(delayMilliseconds);
+        }
+        dir++;
+        dir%=2;
+    }
+}
+
+void showRandomPixels(int iterations, int delayMilliseconds, byte ledBrightness, bool randomizeColors)
+{
+    uint32_t c = pixels.Color(ledBrightness, 0, 0);
+    for (int iter = 0; iter < iterations; iter++) {
+        turnOffPixels();
+        for (byte i = 0; i < NUMPIXEL; i++) {
+            if (random(0, 2) == 0) {
+                if (randomizeColors) {
+                    c = pixels.Color(random(ledBrightness), random(ledBrightness), random(ledBrightness));
+                }
+                pixels.setPixelColor(i, c);
+            }
+        }
+        pixels.show();
+        delay(delayMilliseconds);
+    }
+}
+
+
 
 void cwipe() {
 	for (size_t i = 0; i < count; i++)
@@ -187,7 +266,7 @@ void rainbowCycle(uint8_t wait) {
   }
 }
 
-void Test(int wait) {
+void LED_jede_X(int wait) {
     int firstPixelHue = 0;
 	for (int a = 0; a < 40; a++) 	{
 		for (int b = 0; b < count; b++) {
@@ -202,4 +281,11 @@ void Test(int wait) {
 			firstPixelHue += 65536 / 90;			
 		}
 	}
+}
+void turnOffPixels()
+{
+    for (byte i = 0; i < NUMPIXEL; i++) {
+        pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+    }
+    pixels.show();
 }
